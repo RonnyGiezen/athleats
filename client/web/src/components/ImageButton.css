@@ -1,0 +1,28 @@
+.container {
+    border-radius: 10px;
+    display: flex;
+    overflow: hidden;
+    text-decoration: none;
+    color: bisque;
+    position: relative;
+    font-size: calc(10px + 1vmin);
+    flex-direction: row-reverse;
+}
+
+.text {
+    padding: 5px 10px 5px 7px;
+}
+
+.annotation {
+    background-image: linear-gradient(to bottom, #d95f5f 51%, transparent 51%);
+    background-size: 100% 200%;
+    background-position: bottom;
+    padding: 5px 10px 7px 10px;
+    position: relative;
+    transition: all .3s;
+}
+
+.text:hover + .annotation,
+.annotation:hover {
+    background-position: top;
+}

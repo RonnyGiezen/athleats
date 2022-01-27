@@ -1,0 +1,87 @@
+.accordion-header > Button {
+    display: flex;
+    justify-content: space-between;
+}
+
+.accordion-button::after {
+    margin-left: 0 !important;
+}
+
+.accordion-body {
+    display: flex;
+    justify-content: center;
+}
+
+.receipt {
+    text-align: left;
+    border-collapse: collapse;
+}
+
+.receipt > tbody > .totalrow {
+    font-weight: 900;
+    font-size: 1.2em;
+    margin-top: .6em;
+    border-top: 1px solid #000;
+}
+
+.receipt > tbody > .orderline > td,
+.receipt > tbody > .totalrow > td,
+.receipt > tbody > .btwrow > td {
+    padding: .6em;
+    vertical-align: text-top;
+}
+
+.receipt > tbody > .orderline > td:nth-of-type(2) {
+    padding: 0;
+}
+
+.receipt > tbody > .orderline > td:nth-of-type(4) {
+    color: #777;
+}
+
+.receipt > tbody > .orderline > td:nth-of-type(3) {
+    padding-left: 1em;
+    padding-right: 5em;
+}
+
+.receipt .orderline td.note {
+    display: flex;
+    flex-direction: column;
+}
+
+.receipt .orderline span {
+    color: #aaa;
+}
+
+.receipt > tbody > .btwrow > td:last-of-type,
+.receipt > tbody > .totalrow > td:last-of-type,
+.receipt > tbody > .orderline > td:last-of-type,
+.receipt > tbody > .orderline > td:nth-last-of-type(2) {
+    text-align: right;
+}
+
+.receipt > tbody > .btwrow > td {
+    padding-top: 0;
+    padding-right: .9em;
+    padding-left: .9em;
+}
+
+.receipt > tbody > .totalrow > td {
+    padding-bottom: 0;
+}
+
+.infoColumn {
+    text-align: center;
+    padding-bottom: 0;
+    padding-top: 0;
+}
+
+.infoColumn h3 {
+    margin-top: 1em;
+}
+
+.infoColumn:nth-child(5) {
+    border-bottom: 1px solid #000;
+    height: 3.8em;
+    vertical-align: top;
+}

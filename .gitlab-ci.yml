@@ -1,0 +1,139 @@
+stages:
+  - install
+  - build
+  - test
+  - deploy
+
+server-build:
+  image: maven:openjdk
+  stage: build
+  needs: []
+  tags: 
+    - hva
+  script: cd server && mvn package
+  cache:
+    key: "${CI_COMMIT_REF_NAME}_SERVER"
+    untracked: true
+    policy: push
+    paths:
+      - target/
+
+server-test:
+  image: maven:openjdk
+  stage: test
+  needs: 
+    - job: server-build
+  tags: 
+    - hva
+  script: cd server && mvn verify
+  cache:
+    key: "${CI_COMMIT_REF_NAME}_SERVER"
+    policy: pull
+    paths:
+      - target/
+
+server-deploy:
+  image: node:latest
+  stage: deploy
+  needs:
+    - job: server-test
+  tags: 
+    - hva
+  only:
+    - main
+  when: manual
+  variables:
+    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  cache:
+    key: "${CI_COMMIT_REF_NAME}_SERVER"
+    policy: pull
+    paths:
+      - target/
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/.gradle
+  script:
+    - apt-get update -y
+    - apt-get -y install rsync
+    - mkdir -p ~/.ssh/
+    - echo "$CI_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+
+    - TMP_BUILD_DIR=$(ssh deploy@home.joranout.nl -i ~/.ssh/id_rsa -p 3022 -o StrictHostKeyChecking=no mktemp -d)
+    - echo ${TMP_BUILD_DIR}
+    - rsync -avz --progress -O  -e 'ssh -i ~/.ssh/id_rsa -p 3022' ./server/target/*.jar deploy@home.joranout.nl:${TMP_BUILD_DIR}
+    - rsync -avz --progress -O  -e 'ssh -i ~/.ssh/id_rsa -p 3022' ./server/.dockerignore deploy@home.joranout.nl:${TMP_BUILD_DIR}
+    - rsync -avz --progress -O  -e 'ssh -i ~/.ssh/id_rsa -p 3022' ./server/Dockerfile deploy@home.joranout.nl:${TMP_BUILD_DIR}
+    - ssh -p 3022 deploy@home.joranout.nl "cd ${TMP_BUILD_DIR} && docker build -t server:latest . && docker rm -f server && docker run -d --name server -p 3080:3080 server:latest && docker image prune -a -f" # && rm -rf ${TMP_BUILD_DIR}"
+
+
+web-install:
+  image: node:latest
+  stage: install
+  tags: 
+    - hva
+  cache:
+    key: NPM_DOWNLOAD_CACHE
+    paths:
+      - .npm/
+  script:
+    - cd client/web && npm ci --cache .npm --prefer-offline
+  artifacts:
+    paths:
+      - client/web/node_modules/
+
+
+# Test acceptation configuration to ensure a working Angular application
+web-build:
+  image: node:latest
+  stage: build
+  needs:
+    - job: web-install
+      artifacts: true
+  tags: 
+    - hva
+  script:
+    - cd client/web && ls -al && npm run build
+
+web-test:
+  image: node:latest
+  stage: test  
+  needs:
+    - job: web-install
+      artifacts: true
+    - job: web-build
+      artifacts: true
+  tags: 
+    - hva
+  script:
+    - cd client/web && ls -al && npm test
+
+web-deploy:
+  image: node:latest
+  stage: deploy
+  needs:
+    - job: web-build
+      artifacts: true
+    - job: web-test
+      artifacts: false
+  tags: 
+    - hva
+  only:
+    - main
+  when: manual
+  script:
+    - apt-get update -y
+    - apt-get -y install rsync
+    - mkdir -p ~/.ssh/
+    - echo "$CI_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+
+    - TMP_BUILD_DIR=$(ssh deploy@home.joranout.nl -i ~/.ssh/id_rsa -p 3022 -o StrictHostKeyChecking=no mktemp -d)
+    - echo ${TMP_BUILD_DIR}
+    - rsync -avz --progress -O  -e 'ssh -i ~/.ssh/id_rsa -p 3022' ./client/web/ deploy@home.joranout.nl:${TMP_BUILD_DIR}
+    - ssh -p 3022 deploy@home.joranout.nl "cd ${TMP_BUILD_DIR} && docker build -t web:latest . && docker rm -f webapp && docker run -d --name webapp -p 3000:3000 web:latest && docker image prune -a -f && rm -rf ${TMP_BUILD_DIR}"
+
+
